@@ -52,8 +52,6 @@ def abrir_ventana_registro():
     entrada_validar_contrasenia.place(x = 100, y = 210)
 
 
-
-
 # Ventana principal
 ventana = tk.Tk()
 ventana.title("Biblioteca")
