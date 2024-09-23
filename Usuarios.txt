@@ -1,0 +1,7 @@
+tomi,123,Administrador
+tomas,cordoba,Normalito
+tomas1,cordoba,Cliente
+tomas11,cordoba,Cliente
+lorosordo,tomas,Administrador
+juan,pere,Cliente
+,,Administrador
