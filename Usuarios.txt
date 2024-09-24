@@ -5,3 +5,4 @@ tomas11,cordoba,Cliente
 lorosordo,tomas,Administrador
 juan,pere,Cliente
 ,,Administrador
+tomas,tomas,Administrador
