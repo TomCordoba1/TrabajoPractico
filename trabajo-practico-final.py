@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog, Listbox, Scrollbar
+from tkinter import messagebox, simpledialog, Listbox, Toplevel, Scrollbar
 
 class Usuario:
     def __init__(self, nombre, contrasenia, rol):
@@ -18,7 +18,7 @@ class Libro:
         self.estado = "disponible"
 
     def __str__(self):
-        return f"{self.id_libro}, {self.titulo}, {self.estado}."
+        return f"{self.id_libro}, {self.titulo}, {self.autor}, {self.estado}."
 
 class Biblioteca:
     def __init__(self):
@@ -33,6 +33,14 @@ class Biblioteca:
         self.libros.append(nuevo_libro)
         self.guardar_libros()
 
+    def eliminar_libro(self, titulo):
+        for libro in self.libros:
+            if libro.titulo.lower() == titulo.lower():
+                self.libros.remove(libro)
+                self.guardar_libros()
+                return True
+        return False
+
     def guardar_libros(self):
         with open("Libros.txt", "w") as archivo:
             for libro in self.libros:
@@ -45,6 +53,7 @@ class Biblioteca:
                     datos = linea.strip().split(",")
                     libro = Libro(datos[1], datos[2])
                     libro.id_libro = int(datos[0])
+                    libro.estado = datos[3]
                     self.libros.append(libro)
         except FileNotFoundError:
             pass
@@ -57,7 +66,7 @@ class BibliotecaApp:
         self.ruta_archivo = "Usuarios.txt"
 
         self.biblioteca = Biblioteca()
-        self.usuarios = []  # Para almacenar usuarios
+        self.usuarios = []
 
         self.ventana_login = tk.Frame(master)
         self.ventana_administrador = tk.Frame(master)
@@ -65,7 +74,7 @@ class BibliotecaApp:
         self.ventana_registro = tk.Frame(master)
 
         self.crear_widgets()
-        self.cargar_usuarios()  # Cargar usuarios desde el archivo
+        self.cargar_usuarios()
 
     def crear_widgets(self):
         # Login
@@ -82,7 +91,6 @@ class BibliotecaApp:
         tk.Button(self.ventana_login, text="Registrar", command=self.abrir_ventana_registro).place(x=300, y=230)
         tk.Button(self.ventana_login, text="Cerrar", command=self.master.destroy).place(x=20, y=550)
 
-        # Inicializa la ventana de login
         self.ventana_login.pack(expand=True, fill="both")
 
     def cargar_usuarios(self):
@@ -116,24 +124,30 @@ class BibliotecaApp:
         messagebox.showerror("Error", "Usuario o contraseña incorrectos.")
 
     def abrir_ventana_cliente(self, rol):
-        self.ventana_login.pack_forget()
+        self.cerrar_ventanas()
         self.ventana_cliente.pack(expand=True, fill="both")
         tk.Label(self.ventana_cliente, text=f"Bienvenido, {rol}!").pack(pady=20)
         tk.Button(self.ventana_cliente, text="Cerrar Sesión", command=self.master.destroy).pack(pady=10)
 
     def abrir_ventana_administrador(self, rol):
-        self.ventana_login.pack_forget()
+        self.cerrar_ventanas()
         self.ventana_administrador.pack(expand=True, fill="both")
         tk.Label(self.ventana_administrador, text=f"Bienvenido, {rol}!").pack(pady=20)
 
         tk.Button(self.ventana_administrador, text="Agregar Libro", command=self.agregar_libro).pack(pady=10)
+        tk.Button(self.ventana_administrador, text="Modificar Libro", command=self.mostrar_libros_para_modificar).pack(pady=10)
         tk.Button(self.ventana_administrador, text="Eliminar Libro", command=self.eliminar_libro).pack(pady=10)
         tk.Button(self.ventana_administrador, text="Mostrar Libros", command=self.mostrar_libros).pack(pady=10)
-        tk.Button(self.ventana_administrador, text="Eliminar Cliente", command=self.eliminar_cliente).pack(pady=10)
         tk.Button(self.ventana_administrador, text="Cerrar Sesión", command=self.master.destroy).pack(pady=10)
 
-    def abrir_ventana_registro(self):
+    def cerrar_ventanas(self):
         self.ventana_login.pack_forget()
+        self.ventana_administrador.pack_forget()
+        self.ventana_cliente.pack_forget()
+        self.ventana_registro.pack_forget()
+
+    def abrir_ventana_registro(self):
+        self.cerrar_ventanas()
         self.ventana_registro.pack(expand=True, fill="both")
         tk.Label(self.ventana_registro, text="Registro de Usuario").pack(pady=10)
         tk.Label(self.ventana_registro, text="Nombre:").pack(pady=5)
@@ -143,7 +157,6 @@ class BibliotecaApp:
         self.entrada_contrasenia = tk.Entry(self.ventana_registro, show="*")
         self.entrada_contrasenia.pack(pady=5)
 
-        # Listbox para seleccionar el rol
         tk.Label(self.ventana_registro, text="Selecciona Rol:").pack(pady=5)
         self.listbox_roles = Listbox(self.ventana_registro, height=2)
         self.listbox_roles.insert(1, "Administrador")
@@ -154,19 +167,19 @@ class BibliotecaApp:
         tk.Button(self.ventana_registro, text="Volver", command=self.volver_login).pack(pady=10)
 
     def volver_login(self):
-        self.ventana_registro.pack_forget()
+        self.cerrar_ventanas()
         self.ventana_login.pack(expand=True, fill="both")
 
     def registrar_usuario(self):
         nombre = self.entrada_nombre.get().strip()
         contrasenia = self.entrada_contrasenia.get().strip()
-        rol_seleccionado = self.listbox_roles.curselection()  # Obtener selección
+        rol_seleccionado = self.listbox_roles.curselection()
 
         if nombre and contrasenia and rol_seleccionado:
-            rol = self.listbox_roles.get(rol_seleccionado[0])  # Obtener el rol seleccionado
+            rol = self.listbox_roles.get(rol_seleccionado[0])
             nuevo_usuario = Usuario(nombre, contrasenia, rol)
             self.usuarios.append(nuevo_usuario)
-            self.guardar_usuarios()  # Guarda el nuevo usuario
+            self.guardar_usuarios()
             messagebox.showinfo("Éxito", "Usuario registrado con éxito.")
             self.volver_login()
         else:
@@ -181,21 +194,62 @@ class BibliotecaApp:
         else:
             messagebox.showerror("Error", "Los campos no pueden estar vacíos.")
 
-    def eliminar_libro(self):
-        libro_id = simpledialog.askinteger("Eliminar Libro", "Ingrese el ID del libro a eliminar:")
-        if libro_id is not None:
-            libro_encontrado = False
+    def mostrar_libros_para_modificar(self):
+        if not self.biblioteca.libros:
+            messagebox.showinfo("Información", "No hay libros para modificar.")
+            return
+
+        # Crear una nueva ventana para mostrar la lista de libros
+        ventana_libros = Toplevel(self.master)
+        ventana_libros.title("Seleccionar Libro a Modificar")
+        ventana_libros.geometry("300x400")
+
+        # Crear un Listbox para mostrar los libros
+        listbox_libros = Listbox(ventana_libros)
+        for libro in self.biblioteca.libros:
+            listbox_libros.insert(tk.END, libro.titulo)
+        listbox_libros.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Agregar scrollbar
+        scrollbar = Scrollbar(ventana_libros)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox_libros.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox_libros.yview)
+
+        # Botón para confirmar selección
+        tk.Button(ventana_libros, text="Modificar", command=lambda: self.modificar_libro(listbox_libros.get(tk.ACTIVE), ventana_libros)).pack(pady=10)
+
+    def modificar_libro(self, titulo_libro, ventana):
+        if titulo_libro:
             for libro in self.biblioteca.libros:
-                if libro.id_libro == libro_id:
-                    self.biblioteca.libros.remove(libro)
-                    self.biblioteca.guardar_libros()
-                    libro_encontrado = True
-                    messagebox.showinfo("Éxito", "Libro eliminado con éxito.")
-                    break
-            if not libro_encontrado:
-                messagebox.showerror("Error", "No se encontró un libro con ese ID.")
+                if libro.titulo.lower() == titulo_libro.lower():
+                    nuevo_titulo = simpledialog.askstring("Nuevo Título", "Nuevo título:", initialvalue=libro.titulo)
+                    nuevo_autor = simpledialog.askstring("Nuevo Autor", "Nuevo autor:", initialvalue=libro.autor)
+                    
+                    if nuevo_titulo and nuevo_autor:
+                        libro.titulo = nuevo_titulo
+                        libro.autor = nuevo_autor
+                        self.biblioteca.guardar_libros()
+                        messagebox.showinfo("Éxito", "Libro modificado con éxito.")
+                    else:
+                        messagebox.showerror("Error", "Todos los campos son requeridos.")
+                    ventana.destroy()
+                    return
+        messagebox.showerror("Error", "No se encontró el libro.")
+
+    def eliminar_libro(self):
+        if not self.biblioteca.libros:
+            messagebox.showinfo("Información", "No hay libros que puedas eliminar.")
+            return
+
+        titulo_libro = simpledialog.askstring("Eliminar Libro", "Ingrese el título del libro a eliminar:")
+        if titulo_libro:
+            if self.biblioteca.eliminar_libro(titulo_libro):
+                messagebox.showinfo("Éxito", "Libro eliminado con éxito.")
+            else:
+                messagebox.showerror("Error", "No se encuentra ningún libro con ese título.")
         else:
-            messagebox.showerror("Error", "ID no válido.")
+            messagebox.showerror("Error", "Título no válido.")
 
     def mostrar_libros(self):
         if self.biblioteca.libros:
@@ -203,22 +257,6 @@ class BibliotecaApp:
             messagebox.showinfo("Libros Registrados", libros_str)
         else:
             messagebox.showinfo("Libros Registrados", "No hay libros registrados.")
-
-    def eliminar_cliente(self):
-        nombre_cliente = simpledialog.askstring("Eliminar Cliente", "Ingrese el nombre del cliente a eliminar:")
-        if nombre_cliente:
-            usuario_encontrado = False
-            for usuario in self.usuarios:
-                if usuario.nombre == nombre_cliente and usuario.rol == "Cliente":
-                    self.usuarios.remove(usuario)
-                    self.guardar_usuarios()
-                    usuario_encontrado = True
-                    messagebox.showinfo("Éxito", "Cliente eliminado con éxito.")
-                    break
-            if not usuario_encontrado:
-                messagebox.showerror("Error", "No se encontró un cliente con ese nombre.")
-        else:
-            messagebox.showerror("Error", "Nombre no válido.")
 
 # Crear y ejecutar la aplicación
 root = tk.Tk()
