@@ -58,6 +58,12 @@ class Biblioteca:
         except FileNotFoundError:
             pass
 
+    def buscar_libro(self, titulo):
+        for libro in self.libros:
+            if libro.titulo.lower() == titulo.lower():
+                return libro
+        return None
+
 class BibliotecaApp:
     def __init__(self, master):
         self.master = master
@@ -67,6 +73,7 @@ class BibliotecaApp:
 
         self.biblioteca = Biblioteca()
         self.usuarios = []
+        self.favoritos = []  # Lista para almacenar libros favoritos
 
         self.ventana_login = tk.Frame(master)
         self.ventana_administrador = tk.Frame(master)
@@ -127,7 +134,43 @@ class BibliotecaApp:
         self.cerrar_ventanas()
         self.ventana_cliente.pack(expand=True, fill="both")
         tk.Label(self.ventana_cliente, text=f"Bienvenido, {rol}!").pack(pady=20)
+
+        tk.Button(self.ventana_cliente, text="Buscar Libro", command=self.buscar_libro).pack(pady=10)
+        tk.Button(self.ventana_cliente, text="Agregar a Favoritos", command=self.agregar_a_favoritos).pack(pady=10)
+        tk.Button(self.ventana_cliente, text="Ver Detalles de Favoritos", command=self.ver_detalles).pack(pady=10)
         tk.Button(self.ventana_cliente, text="Cerrar Sesión", command=self.master.destroy).pack(pady=10)
+
+    def buscar_libro(self):
+        titulo_libro = simpledialog.askstring("Buscar Libro", "Ingrese el título del libro a buscar:")
+        if titulo_libro:
+            libro = self.biblioteca.buscar_libro(titulo_libro)
+            if libro:
+                detalles = f"Título: {libro.titulo}\nAutor: {libro.autor}\nEstado: {libro.estado}"
+                messagebox.showinfo("Detalles del Libro", detalles)
+            else:
+                messagebox.showerror("Error", "Libro no encontrado.")
+        else:
+            messagebox.showerror("Error", "Título no válido.")
+
+    def agregar_a_favoritos(self):
+        titulo_libro = simpledialog.askstring("Agregar a Favoritos", "Ingrese el título del libro a agregar a favoritos:")
+        if titulo_libro:
+            libro = self.biblioteca.buscar_libro(titulo_libro)
+            if libro and libro.estado == "disponible":
+                self.favoritos.append(libro)
+                messagebox.showinfo("Éxito", "Libro agregado a favoritos.")
+            else:
+                messagebox.showerror("Error", "El libro no está disponible o no existe.")
+        else:
+            messagebox.showerror("Error", "Título no válido.")
+
+    def ver_detalles(self):
+        if not self.favoritos:
+            messagebox.showinfo("Favoritos", "No hay libros en la lista de favoritos.")
+            return
+
+        favoritos_str = "\n".join(libro.titulo for libro in self.favoritos)
+        messagebox.showinfo("Libros Favoritos", "Tus libros favoritos:\n" + favoritos_str)
 
     def abrir_ventana_administrador(self, rol):
         self.cerrar_ventanas()
@@ -186,13 +229,31 @@ class BibliotecaApp:
             messagebox.showerror("Error", "Todos los campos son requeridos.")
 
     def agregar_libro(self):
-        titulo = simpledialog.askstring("Agregar Libro", "Título del libro:")
-        autor = simpledialog.askstring("Agregar Libro", "Autor del libro:")
-        if titulo and autor:
-            self.biblioteca.agregar_libro(titulo, autor)
-            messagebox.showinfo("Éxito", "Libro agregado con éxito.")
-        else:
-            messagebox.showerror("Error", "Los campos no pueden estar vacíos.")
+        # Crear una ventana de entrada personalizada
+        ventana_agregar = Toplevel(self.master)
+        ventana_agregar.title("Agregar Libro")
+        ventana_agregar.geometry("300x150")
+
+        tk.Label(ventana_agregar, text="Título del libro:").pack(pady=5)
+        entrada_titulo = tk.Entry(ventana_agregar)
+        entrada_titulo.pack(pady=5)
+
+        tk.Label(ventana_agregar, text="Autor del libro:").pack(pady=5)
+        entrada_autor = tk.Entry(ventana_agregar)
+        entrada_autor.pack(pady=5)
+
+        def confirmar_agregar():
+            titulo = entrada_titulo.get().strip()
+            autor = entrada_autor.get().strip()
+            if titulo and autor:
+                self.biblioteca.agregar_libro(titulo, autor)
+                messagebox.showinfo("Éxito", "Libro agregado con éxito.")
+                ventana_agregar.destroy()
+            else:
+                messagebox.showerror("Error", "Los campos no pueden estar vacíos.")
+
+        tk.Button(ventana_agregar, text="Agregar", command=confirmar_agregar).pack(pady=10)
+        tk.Button(ventana_agregar, text="Cancelar", command=ventana_agregar.destroy).pack(pady=5)
 
     def mostrar_libros_para_modificar(self):
         if not self.biblioteca.libros:
