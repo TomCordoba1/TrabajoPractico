@@ -73,7 +73,7 @@ class BibliotecaApp:
 
         self.biblioteca = Biblioteca()
         self.usuarios = []
-        self.favoritos = []  # Lista para almacenar libros favoritos
+        self.favoritos = []
 
         self.ventana_login = tk.Frame(master)
         self.ventana_administrador = tk.Frame(master)
@@ -135,25 +135,33 @@ class BibliotecaApp:
         self.ventana_cliente.pack(expand=True, fill="both")
         tk.Label(self.ventana_cliente, text=f"Bienvenido, {rol}!").pack(pady=20)
 
-        tk.Button(self.ventana_cliente, text="Buscar Libro", command=self.buscar_libro).pack(pady=10)
-        tk.Button(self.ventana_cliente, text="Agregar a Favoritos", command=self.agregar_a_favoritos).pack(pady=10)
+        tk.Button(self.ventana_cliente, text="Visualizar Libros", command=self.visualizar_libros).pack(pady=10)
         tk.Button(self.ventana_cliente, text="Ver Detalles de Favoritos", command=self.ver_detalles).pack(pady=10)
+        tk.Button(self.ventana_cliente, text="Regresar", command=self.volver_login).pack(pady=10)
         tk.Button(self.ventana_cliente, text="Cerrar Sesión", command=self.master.destroy).pack(pady=10)
 
-    def buscar_libro(self):
-        titulo_libro = simpledialog.askstring("Buscar Libro", "Ingrese el título del libro a buscar:")
-        if titulo_libro:
-            libro = self.biblioteca.buscar_libro(titulo_libro)
-            if libro:
-                detalles = f"Título: {libro.titulo}\nAutor: {libro.autor}\nEstado: {libro.estado}"
-                messagebox.showinfo("Detalles del Libro", detalles)
-            else:
-                messagebox.showerror("Error", "Libro no encontrado.")
-        else:
-            messagebox.showerror("Error", "Título no válido.")
+    def visualizar_libros(self):
+        if not self.biblioteca.libros:
+            messagebox.showinfo("Información", "No hay libros disponibles.")
+            return
 
-    def agregar_a_favoritos(self):
-        titulo_libro = simpledialog.askstring("Agregar a Favoritos", "Ingrese el título del libro a agregar a favoritos:")
+        ventana_libros = Toplevel(self.master)
+        ventana_libros.title("Seleccionar Libro")
+        ventana_libros.geometry("300x400")
+
+        listbox_libros = Listbox(ventana_libros)
+        for libro in self.biblioteca.libros:
+            listbox_libros.insert(tk.END, libro.titulo)
+        listbox_libros.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        scrollbar = Scrollbar(ventana_libros)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox_libros.config(yscrollcommand=scrollbar.set)
+        scrollbar.config(command=listbox_libros.yview)
+
+        tk.Button(ventana_libros, text="Agregar a Favoritos", command=lambda: self.agregar_a_favoritos(listbox_libros.get(tk.ACTIVE))).pack(pady=10)
+
+    def agregar_a_favoritos(self, titulo_libro):
         if titulo_libro:
             libro = self.biblioteca.buscar_libro(titulo_libro)
             if libro and libro.estado == "disponible":
@@ -162,7 +170,7 @@ class BibliotecaApp:
             else:
                 messagebox.showerror("Error", "El libro no está disponible o no existe.")
         else:
-            messagebox.showerror("Error", "Título no válido.")
+            messagebox.showerror("Error", "No se ha seleccionado ningún libro.")
 
     def ver_detalles(self):
         if not self.favoritos:
@@ -181,13 +189,17 @@ class BibliotecaApp:
         tk.Button(self.ventana_administrador, text="Modificar Libro", command=self.mostrar_libros_para_modificar).pack(pady=10)
         tk.Button(self.ventana_administrador, text="Eliminar Libro", command=self.eliminar_libro).pack(pady=10)
         tk.Button(self.ventana_administrador, text="Mostrar Libros", command=self.mostrar_libros).pack(pady=10)
-        tk.Button(self.ventana_administrador, text="Cerrar Sesión", command=self.master.destroy).pack(pady=10)
+        tk.Button(self.ventana_administrador, text="Regresar", command=self.volver_login).pack(pady=10)
 
     def cerrar_ventanas(self):
         self.ventana_login.pack_forget()
         self.ventana_administrador.pack_forget()
         self.ventana_cliente.pack_forget()
         self.ventana_registro.pack_forget()
+
+    def volver_login(self):
+        self.cerrar_ventanas()
+        self.ventana_login.pack(expand=True, fill="both")
 
     def abrir_ventana_registro(self):
         self.cerrar_ventanas()
@@ -209,10 +221,6 @@ class BibliotecaApp:
         tk.Button(self.ventana_registro, text="Registrar", command=self.registrar_usuario).pack(pady=10)
         tk.Button(self.ventana_registro, text="Volver", command=self.volver_login).pack(pady=10)
 
-    def volver_login(self):
-        self.cerrar_ventanas()
-        self.ventana_login.pack(expand=True, fill="both")
-
     def registrar_usuario(self):
         nombre = self.entrada_nombre.get().strip()
         contrasenia = self.entrada_contrasenia.get().strip()
@@ -229,7 +237,6 @@ class BibliotecaApp:
             messagebox.showerror("Error", "Todos los campos son requeridos.")
 
     def agregar_libro(self):
-        # Crear una ventana de entrada personalizada
         ventana_agregar = Toplevel(self.master)
         ventana_agregar.title("Agregar Libro")
         ventana_agregar.geometry("300x150")
@@ -260,24 +267,20 @@ class BibliotecaApp:
             messagebox.showinfo("Información", "No hay libros para modificar.")
             return
 
-        # Crear una nueva ventana para mostrar la lista de libros
         ventana_libros = Toplevel(self.master)
         ventana_libros.title("Seleccionar Libro a Modificar")
         ventana_libros.geometry("300x400")
 
-        # Crear un Listbox para mostrar los libros
         listbox_libros = Listbox(ventana_libros)
         for libro in self.biblioteca.libros:
             listbox_libros.insert(tk.END, libro.titulo)
         listbox_libros.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        # Agregar scrollbar
         scrollbar = Scrollbar(ventana_libros)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         listbox_libros.config(yscrollcommand=scrollbar.set)
         scrollbar.config(command=listbox_libros.yview)
 
-        # Botón para confirmar selección
         tk.Button(ventana_libros, text="Modificar", command=lambda: self.modificar_libro(listbox_libros.get(tk.ACTIVE), ventana_libros)).pack(pady=10)
 
     def modificar_libro(self, titulo_libro, ventana):
